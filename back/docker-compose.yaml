@@ -1,0 +1,36 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: springdbp5
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: test
+      MYSQL_USER: user
+      MYSQL_PASSWORD: 123456
+    ports:
+      - "3306:3306"
+    volumes:
+      - p5_spring_data:/var/lib/mysql
+    networks:
+      - p5_spring
+
+  pma:
+    image: arm64v8/phpmyadmin
+    container_name: springpmap5
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: 123456
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+    networks:
+      - p5_spring
+
+volumes:
+  p5_spring_data: {}
+
+networks:
+  p5_spring: {}
