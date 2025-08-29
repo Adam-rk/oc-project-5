@@ -1,43 +1,108 @@
 // ***********************************************
-// This example namespace declaration will help
-// with Intellisense and code completion in your
-// IDE or Text Editor.
+// Custom commands for Yoga App E2E Testing
 // ***********************************************
-// declare namespace Cypress {
-//   interface Chainable<Subject = any> {
-//     customCommand(param: any): typeof customCommand;
-//   }
-// }
-//
-// function customCommand(param: any): void {
-//   console.warn(param);
-// }
-//
-// NOTE: You can use it like so:
-// Cypress.Commands.add('customCommand', customCommand);
-//
-// ***********************************************
-// This example commands.js shows you how to
-// create various custom commands and overwrite
-// existing commands.
-//
-// For more comprehensive examples of custom
-// commands please read more here:
-// https://on.cypress.io/custom-commands
-// ***********************************************
-//
-//
-// -- This is a parent command --
-// Cypress.Commands.add("login", (email, password) => { ... })
-//
-//
-// -- This is a child command --
-// Cypress.Commands.add("drag", { prevSubject: 'element'}, (subject, options) => { ... })
-//
-//
-// -- This is a dual command --
-// Cypress.Commands.add("dismiss", { prevSubject: 'optional'}, (subject, options) => { ... })
-//
-//
-// -- This will overwrite an existing command --
-// Cypress.Commands.overwrite("visit", (originalFn, url, options) => { ... })
+
+declare namespace Cypress {
+  interface Chainable<Subject = any> {
+    /**
+     * Custom command to login as admin user
+     * @example cy.loginAsAdmin()
+     */
+    loginAsAdmin(): Chainable<Element>;
+
+    /**
+     * Custom command to login as regular user
+     * @example cy.loginAsUser()
+     */
+    loginAsUser(): Chainable<Element>;
+
+    /**
+     * Custom command to login with specific credentials
+     * @example cy.login('test@example.com', 'password123')
+     */
+    login(email: string, password: string): Chainable<Element>;
+  }
+}
+
+// Mock session data for API responses
+const mockSessions = [
+  {
+    id: 1,
+    name: 'Yoga Session 1',
+    description: 'Beginner friendly yoga session',
+    date: new Date().toISOString(),
+    teacher_id: 1,
+    users: [1, 2, 3],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 2,
+    name: 'Yoga Session 2',
+    description: 'Advanced yoga session',
+    date: new Date().toISOString(),
+    teacher_id: 2,
+    users: [1, 4],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
+
+// Login as admin user
+Cypress.Commands.add('loginAsAdmin', () => {
+  cy.intercept('POST', '/api/auth/login', {
+    body: {
+      id: 1,
+      username: 'admin',
+      firstName: 'Admin',
+      lastName: 'User',
+      admin: true
+    },
+  }).as('loginRequest');
+
+  cy.intercept(
+    {
+      method: 'GET',
+      url: '/api/session',
+    },
+    mockSessions
+  ).as('sessions');
+
+  cy.visit('/login');
+  cy.login('admin@yoga.com', 'admin123');
+  cy.wait('@loginRequest');
+  cy.url().should('include', '/sessions');
+});
+
+// Login as regular user
+Cypress.Commands.add('loginAsUser', () => {
+  cy.intercept('POST', '/api/auth/login', {
+    body: {
+      id: 2,
+      username: 'user',
+      firstName: 'Regular',
+      lastName: 'User',
+      admin: false
+    },
+  }).as('loginRequest');
+
+  cy.intercept(
+    {
+      method: 'GET',
+      url: '/api/session',
+    },
+    mockSessions
+  ).as('sessions');
+
+  cy.visit('/login');
+  cy.login('user@yoga.com', 'user123');
+  cy.wait('@loginRequest');
+  cy.url().should('include', '/sessions');
+});
+
+// Generic login with provided credentials
+Cypress.Commands.add('login', (email: string, password: string) => {
+  cy.get('input[formControlName=email]').type(email);
+  cy.get('input[formControlName=password]').type(password);
+  cy.get('button[type="submit"]').click();
+});
